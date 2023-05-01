@@ -81,8 +81,14 @@ namespace RPGMPatcher{
                 "Bitmap.prototype._requestImage = function(url){\r\n",
                 "    if(window.pconf.texture_pack && window.pconf.texture_pack != 'none'){\r\n        url = url.replace('img/', `texturepacks/${window.pconf.texture_pack}/`);\r\n    }\r\n    window.loadedTextures.push(url);\r\n"
             );
-            code = InsertAfter(code, "Decrypter.extToEncryptExt = function(url) {\r\n", "    if(window.pconf.texture_pack && window.pconf.texture_pack != 'none') return url;\r\n");
-            code = InsertAfter(code, "Decrypter.decryptArrayBuffer = function(arrayBuffer) {\r\n", "    if(window.pconf.texture_pack && window.pconf.texture_pack != 'none') return arrayBuffer;\r\n");
+            code = InsertAfter(
+                code,
+                "Decrypter.decryptImg = function(url, bitmap) {\r\n    url = this.extToEncryptExt(url);\r\n\r\n    var requestFile = new XMLHttpRequest();\r\n    requestFile.open(\"GET\", url);\r\n    requestFile.responseType = \"arraybuffer\";\r\n    requestFile.send();\r\n\r\n    requestFile.onload = function () {\r\n        if(this.status < Decrypter._xhrOk) {\r\n            var arrayBuffer = Decrypter.decryptArrayBuffer(requestFile.response",
+                ", true"
+            );
+            code = InsertAfter(code, "Decrypter.extToEncryptExt = function(url) {\r\n", "    if(url.endsWith('.png') && window.pconf.texture_pack && window.pconf.texture_pack != 'none') return url;\r\n");
+            code = InsertAfter(code, "Decrypter.decryptArrayBuffer = function(arrayBuffer", ", ii");
+            code = InsertAfter(code, "Decrypter.decryptArrayBuffer = function(arrayBuffer, ii) {\r\n", "    if(ii && window.pconf.texture_pack && window.pconf.texture_pack != 'none') return arrayBuffer;\r\n");
 
             return code;
         }
