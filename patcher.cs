@@ -10,7 +10,7 @@ namespace RPGMPatcher{
             bool q = args.Length > 1 && args[1] == "-q";
             string dir = "";
 
-            WriteLine(q, "RPGM Patcher 0.2 by nekit270 (https://nekit270.ch)" + Environment.NewLine);
+            WriteLine(q, "RPGM Patcher 0.3 by nekit270 (https://nekit270.ch)" + Environment.NewLine);
 
             if(args.Length == 0){
                 Console.Write("Укажите путь к папке с игрой: ");
@@ -76,11 +76,15 @@ namespace RPGMPatcher{
 
         static string PatchCore(string code){
             code = ToCrLf(code);
-            return InsertAfter(
+            code = InsertAfter(
                 code,
                 "Bitmap.prototype._requestImage = function(url){\r\n",
-                "if(window.pconf.texture_pack && window.pconf.texture_pack != 'none'){url = url.replace('img/', `texturepacks/${window.pconf.texture_pack}/`);}\r\nwindow.loadedTextures.push(url);\r\n"
+                "    if(window.pconf.texture_pack && window.pconf.texture_pack != 'none'){\r\n        url = url.replace('img/', `texturepacks/${window.pconf.texture_pack}/`);\r\n    }\r\n    window.loadedTextures.push(url);\r\n"
             );
+            code = InsertAfter(code, "Decrypter.extToEncryptExt = function(url) {\r\n", "    if(window.pconf.texture_pack && window.pconf.texture_pack != 'none') return url;\r\n");
+            code = InsertAfter(code, "Decrypter.decryptArrayBuffer = function(arrayBuffer) {\r\n", "    if(window.pconf.texture_pack && window.pconf.texture_pack != 'none') return arrayBuffer;\r\n");
+
+            return code;
         }
 
         static string PatchObjects(string code){
