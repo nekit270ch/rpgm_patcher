@@ -18,6 +18,7 @@ try{
 			ADD_MONEY: 'm',
 			NO_CLIP: 'n',
 			SET_SPEED: 'e',
+			SET_TEXTURE_PACK: 't',
 			HELP: 'h'
 		}
 	}
@@ -80,12 +81,23 @@ window.addEventListener('keypress', e=>{
 			break;
 		}
 
+		case pconf.keys.SET_TEXTURE_PACK: {
+			let inp = prompt('Введите название текстурпака ["none" для отключения]', pconf.texture_pack);
+			if(inp && inp.length > 0){
+				pconf.texture_pack = inp;
+				fs.writeFileSync('patcher.json', JSON.stringify(pconf, null, 4));
+			}
+			location.reload();
+			break;
+		}
+
 		case pconf.keys.HELP: {
-			let str = 'Горячие клавиши RPGM Patcher\n\n';
+			let str = 'Клавиши RPGM Patcher\n\n';
 			str += `[${pconf.keys.PAUSE.toUpperCase()}] Поставить игру на паузу\n`;
 			str += `[${pconf.keys.RESTART.toUpperCase()}] Перезапустить игру\n`;
 			str += `[${pconf.keys.JS_CONSOLE.toUpperCase()}] Открыть консоль JavaScript\n`;
 			str += `[${pconf.keys.SAVE.toUpperCase()}] Открыть окно сохранения\n`;
+			str += `[${pconf.keys.SET_TEXTURE_PACK.toUpperCase()}] Открыть окно выбора текстурпака`;
 			str += `[${pconf.keys.GOD_MODE.toUpperCase()}] Режим бога (очень высокие HP, атака, защита и т.д.)\n`;
 			str += `[${pconf.keys.ADD_MONEY.toUpperCase()}] Накрутка денег\n`;
 			str += `[${pconf.keys.NO_CLIP.toUpperCase()}] NoClip (возможность проходить сквозь объекты)\n`;
