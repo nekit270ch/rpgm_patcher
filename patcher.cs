@@ -10,7 +10,7 @@ namespace RPGMPatcher{
             bool q = args.Length > 1 && args[1] == "-q";
             string dir = "";
 
-            WriteLine(q, "RPGM Patcher 0.5 by nekit270 (https://nekit270.ch)" + Environment.NewLine);
+            WriteLine(q, "RPGM Patcher 0.4 by nekit270 (https://nekit270.ch)" + Environment.NewLine);
 
             if(args.Length == 0){
                 Console.Write("Укажите путь к папке с игрой: ");
