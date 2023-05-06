@@ -1,11 +1,16 @@
 const fs = require('fs');
+const p = require('path');
 
 if(!fs.existsSync('www/texturepacks')){
 	fs.mkdirSync('www/texturepacks');
 }
 
+if(!fs.existsSync('www/js/customScripts')){
+	fs.mkdirSync('www/js/customScripts');
+}
+
 try{
-	window.pconf = JSON.parse(fs.readFileSync('patcher.json'));
+	window.pconf = JSON.parse(fs.readFileSync('www/patcher.json'));
 }catch(_){
 	window.pconf = {
 		texture_pack: 'none',
@@ -22,11 +27,21 @@ try{
 			HELP: 'h'
 		}
 	}
-	fs.writeFileSync('patcher.json', JSON.stringify(pconf, null, 4));
+	fs.writeFileSync('www/patcher.json', JSON.stringify(pconf, null, 4));
 }
 
 window.loadedTextures = [];
 window.godMode = false;
+let noclip = false;
+
+window.addEventListener('load', ()=>{
+	fs.readdirSync('www/js/customScripts').forEach(f=>{
+		if(!f.endsWith('.js')) return;
+		let s = document.createElement('script');
+		s.src = 'js/customScripts/' + f;
+		document.body.appendChild(s);
+	});
+});
 
 window.addEventListener('keypress', e=>{
 	switch(e.key){
@@ -69,7 +84,13 @@ window.addEventListener('keypress', e=>{
 		}
 
 		case pconf.keys.NO_CLIP: {
-			$gamePlayer.canPass = ()=>true;
+			noclip = !noclip;
+			if(noclip){
+				$gamePlayer.rCanPass = $gamePlayer.canPass;
+				$gamePlayer.canPass = ()=>true;
+			}else{
+				$gamePlayer.canPass = $gamePlayer.rCanPass;
+			}
 			break;
 		}
 
@@ -82,12 +103,7 @@ window.addEventListener('keypress', e=>{
 		}
 
 		case pconf.keys.SET_TEXTURE_PACK: {
-			let inp = prompt('Введите название текстурпака ["none" для отключения]', pconf.texture_pack);
-			if(inp && inp.length > 0){
-				pconf.texture_pack = inp;
-				fs.writeFileSync('patcher.json', JSON.stringify(pconf, null, 4));
-			}
-			location.reload();
+			texturePacksUI();
 			break;
 		}
 
@@ -106,3 +122,220 @@ window.addEventListener('keypress', e=>{
 		}
 	}
 });
+
+CSSStyleDeclaration.prototype.set = function(obj){
+	for(let i in obj){
+		this[i] = obj[i];
+	}
+}
+
+String.prototype.replaceAll = function(o, n){
+	return this.split(o).join(n);
+}
+
+function popup(opts){
+	if(!opts) opts = {};
+
+	let h = document.createElement('div');
+	h.style.set({
+		position: 'absolute',
+		left: '0',
+		top: '0',
+		width: '100vw',
+		height: '100vh',
+		zIndex: '999999',
+		display: 'flex',
+		justifyContent: 'center',
+		alignItems: 'center'
+	});
+	h.addEventListener('click', e=>{
+		if(e.target == h){
+			document.body.removeChild(h);
+			if(opts.onclose) opts.onclose();
+		}
+	});
+
+	let box = document.createElement('div');
+	box.style.set({
+		border: 'solid 1px black',
+		padding: '1em',
+		background: 'white',
+		cursor: 'default',
+		fontFamily: 'Consolas, monospace'
+	});
+
+	h.appendChild(box);
+
+	return { h: h, box: box, show: ()=>{ document.body.appendChild(h) }, close: ()=>{ document.body.removeChild(h) } };
+}
+
+function readDir(dir){
+	let arr = [];
+
+	fs.readdirSync(dir).forEach(f=>{
+		let n = p.join(dir, f);
+		if(fs.statSync(n).isDirectory()){
+			arr.push(...readDir(n));
+		}else{
+			arr.push(n);
+		}
+	});
+
+	return arr;
+}
+
+function getSubDirs(dir){
+	let arr = [];
+
+	fs.readdirSync(dir).forEach(f=>{
+		let n = p.join(dir, f);
+		if(fs.statSync(n).isDirectory()){
+			arr.push(n);
+			arr.push(...getSubDirs(n));
+		}
+	});
+
+	return arr;
+}
+
+function texturePacksUI(){
+	let { box, show, close } = popup();
+	
+	let header = document.createElement('h2');
+	header.style.margin = '0 0 0.5em 0.5em';
+	header.innerText = 'Текстурпаки';
+	
+	let sel = document.createElement('select');
+	sel.style.set({ width: '20em', marginBottom: '1em' });
+	sel.size = 7;
+	sel.options[0] = new Option('<нет>', 'none');
+	sel.focus();
+	
+	fs.readdirSync('www/texturepacks').forEach((d,i)=>{
+		sel.options[i+1] = new Option(d, d);
+	});
+	sel.value = pconf.texture_pack;
+
+	let btnSel = document.createElement('button');
+	btnSel.style.set({ padding: '0.2em 0.5em', marginRight: '0.5em' });
+	btnSel.innerText = 'Применить';
+
+	btnSel.addEventListener('click', ()=>{
+		pconf.texture_pack = sel.value;
+		fs.writeFileSync('www/patcher.json', JSON.stringify(pconf, null, 4));
+		location.reload();
+	});
+
+	let btnCreate = document.createElement('button');
+	btnCreate.style.padding = '0.2em 0.5em';
+	btnCreate.innerText = 'Создать новый';
+
+	btnCreate.addEventListener('click', ()=>{
+		let name = prompt('Введите название нового текстурпака', document.title+'_New1');
+		if(name && name.length > 0){
+			fs.mkdirSync('www/texturepacks/' + name);
+			decryptGameFiles('texturepacks/' + name, ()=>{
+				close();
+				texturePacksUI();
+			});
+		}
+	});
+
+	box.appendChild(header);
+	box.appendChild(sel);
+	box.appendChild(document.createElement('br'));
+	box.appendChild(btnSel);
+	box.appendChild(btnCreate);
+	show();
+}
+
+function decryptGameFiles(destDir, onend){
+	let { box, show } = popup({ onclose: onend });
+
+	let header = document.createElement('h2');
+	header.style.margin = '0 0 0.5em 0.5em';
+	header.innerText = 'Создание текстурпака';
+
+	let logt = document.createElement('textarea');
+	logt.readOnly = true;
+	logt.style.set({ width: '30em', height: '10em' });
+
+	box.appendChild(header);
+	box.appendChild(logt);
+	show();
+
+	function log(text){
+		logt.value += text + '\n';
+		logt.scrollTo(0, logt.scrollHeight);
+	}
+
+	log('Создание папок...');
+	getSubDirs('www/img').forEach(d=>{
+		let dr = d.replaceAll('\\', '/').replace('img', destDir);
+		if(!fs.existsSync(dr)){
+			fs.mkdirSync(dr);
+			log('Создана папка: ' + dr);
+		}
+	});
+
+	let files = readDir('www/img');
+	if(files.find(n=>n.endsWith('.rpgmvp'))){
+		log('Текстуры зашифрованы. Расшифровка и копирование...');
+
+		let ptp = pconf.texture_pack;
+		pconf.texture_pack = 'none';
+
+		function df(i){
+			let n = files[i];
+
+			if(!n.endsWith('.rpgmvp')){
+				let dst = n.replace('img', destDir);
+				fs.copyFileSync(n, dst);
+				log(`Файл ${n} скопирован в ${dst}`);
+				if(i+1 < files.length){
+					df(i+1);
+				}else{
+					log('Текстурпак создан');
+				}
+				return;
+			}
+
+			log('Расшифровка файла: ' + n);
+
+			let nm = n.replaceAll('\\', '/').replace('www/', '').replace('.rpgmvp', '.png');
+
+			let img = new Image();
+			let bitmap = { _image: img, _onLoad: ()=>{}, _onError: ()=>{}, _renewCanvas: ()=>{} };
+			Decrypter.decryptImg(nm, bitmap);
+
+			let dst = n.replaceAll('\\', '/').replace('img', destDir).replace('.rpgmvp', '.png');
+			img.onload = ()=>{
+				let cnv = document.createElement('canvas');
+				cnv.width = bitmap._image.naturalWidth;
+				cnv.height = bitmap._image.naturalHeight;
+				cnv.getContext('2d').drawImage(bitmap._image, 0, 0, bitmap._image.naturalWidth, bitmap._image.naturalHeight);
+
+				let data = cnv.toDataURL().split(',').pop();
+				fs.writeFileSync(dst, data, { encoding: 'base64' });
+				log(`Файл ${n} расшифрован и скопирован в ${dst}`);
+
+				if(i+1 < files.length){
+					df(i+1);
+				}else{
+					log('Текстурпак создан');
+				}
+			}
+		}
+
+		df(0);
+		pconf.texture_pack = ptp;
+	}else{
+		log('Текстуры не зашифрованы. Копирование...');
+		files.forEach(n=>{
+			let nm = n.replace('img', destDir);
+			fs.copyFileSync(n, nm);
+			log(`Скопирован файл: из ${n} в ${nm}`);
+		});
+		log('Текстурпак создан');
+	}
+}
