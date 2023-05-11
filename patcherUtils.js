@@ -62,14 +62,12 @@ window.addEventListener('keypress', e=>{
 		}
 
 		case pconf.keys.GOD_MODE: {
-			window.godMode = true;
-			alert('Режим бога включен');
+			window.godMode = !window.godMode;
 			break;
 		}
 
 		case pconf.keys.ADD_MONEY: {
 			$gameParty._gold = Number.MAX_SAFE_INTEGER;
-			alert('Деньги накручены');
 			break;
 		}
 
@@ -114,7 +112,7 @@ window.addEventListener('keypress', e=>{
 			str += `[${pconf.keys.JS_CONSOLE.toUpperCase()}] Открыть консоль JavaScript\n`;
 			str += `[${pconf.keys.SAVE.toUpperCase()}] Открыть окно сохранения\n`;
 			str += `[${pconf.keys.SET_TEXTURE_PACK.toUpperCase()}] Открыть окно выбора текстурпака\n`;
-			str += `[${pconf.keys.GOD_MODE.toUpperCase()}] Режим бога (очень высокие HP, атака, защита и т.д.)\n`;
+			str += `[${pconf.keys.GOD_MODE.toUpperCase()}] Накрутка HP, атаки и защиты\n`;
 			str += `[${pconf.keys.ADD_MONEY.toUpperCase()}] Накрутка денег\n`;
 			str += `[${pconf.keys.NO_CLIP.toUpperCase()}] NoClip (возможность проходить сквозь объекты)\n`;
 			str += `[${pconf.keys.SET_SPEED.toUpperCase()}] Изменить скорость игрока\n`;
